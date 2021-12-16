@@ -1,0 +1,169 @@
+﻿@model ConfigurationModel
+
+@{
+    Layout = "_ConfigurePlugin";
+}
+
+@await Component.InvokeAsync("StoreScopeConfiguration")
+
+<form asp-controller="HummConfiguration" asp-action="Configure" method="post">
+    <div class="cards-group">
+        <div class="card card-default">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="IsSandbox_OverrideForStore" asp-input="IsSandbox" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="IsSandbox" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="IsSandbox" />
+                        <span asp-validation-for="IsSandbox"></span>
+                    </div>
+                </div>
+                <div id="sandbox-fields-container">
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="SandboxAccountId_OverrideForStore" asp-input="SandboxAccountId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="SandboxAccountId" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="SandboxAccountId" />
+                            <span asp-validation-for="SandboxAccountId"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="SandboxClientId_OverrideForStore" asp-input="SandboxClientId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="SandboxClientId" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="SandboxClientId" />
+                            <span asp-validation-for="SandboxClientId"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="SandboxClientSecret_OverrideForStore" asp-input="SandboxClientSecret" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="SandboxClientSecret" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="SandboxClientSecret" />
+                            <span asp-validation-for="SandboxClientSecret"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="SandboxRefreshToken_OverrideForStore" asp-input="SandboxRefreshToken" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="SandboxRefreshToken" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="SandboxRefreshToken" />
+                            <span asp-validation-for="SandboxRefreshToken"></span>
+                        </div>
+                    </div>
+                </div>
+                <div id="production-fields-container">
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ProductionAccountId_OverrideForStore" asp-input="ProductionAccountId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ProductionAccountId" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="ProductionAccountId" />
+                            <span asp-validation-for="ProductionAccountId"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ProductionClientId_OverrideForStore" asp-input="ProductionClientId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ProductionClientId" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="ProductionClientId" />
+                            <span asp-validation-for="ProductionClientId"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ProductionClientSecret_OverrideForStore" asp-input="ProductionClientSecret" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ProductionClientSecret" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="ProductionClientSecret" />
+                            <span asp-validation-for="ProductionClientSecret"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ProductionRefreshToken_OverrideForStore" asp-input="ProductionRefreshToken" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ProductionRefreshToken" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="ProductionRefreshToken" />
+                            <span asp-validation-for="ProductionRefreshToken"></span>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    $(document).ready(function () {
+                        toggleEnvironment();
+                        $("#@Html.IdFor(model => model.IsSandbox)").click(toggleEnvironment);
+                    });
+
+                    function toggleEnvironment() {
+                        if ($('#@Html.IdFor(model => model.IsSandbox)').is(':checked')) {
+                            $('#sandbox-fields-container').show();
+                            $('#production-fields-container').hide();
+                        } else {
+                            $('#sandbox-fields-container').hide();
+                            $('#production-fields-container').show();
+                        }
+                    }
+                </script>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="AdditionalFee_OverrideForStore" asp-input="AdditionalFee" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="AdditionalFee" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="AdditionalFee" />
+                        <span asp-validation-for="AdditionalFee"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="AdditionalFeePercentage_OverrideForStore" asp-input="AdditionalFeePercentage" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="AdditionalFeePercentage" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="AdditionalFeePercentage" />
+                        <span asp-validation-for="AdditionalFeePercentage"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="ConfirmPaymentEndpoint" />
+                    </div>
+                    <div class="col-md-9" style="margin-top: 7px;">
+                        @Model.ConfirmPaymentEndpoint
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="CancelPaymentEndpoint" />
+                    </div>
+                    <div class="col-md-9" style="margin-top: 7px;">
+                        @Model.CancelPaymentEndpoint
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-9 offset-md-3">
+                        <button type="submit" name="save" class="btn bg-blue">
+                            @T("Admin.Common.Save")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
