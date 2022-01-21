@@ -17,7 +17,7 @@ namespace Nop.Plugin.Payments.Humm.Api.Models
         /// Required parameter
         /// </remarks>
         [JsonProperty("status")]
-        public PaymentStatus Status { get; set; }
+        public PaymentStatus? Status { get; set; }
 
         /// <summary>
         /// Gets or sets the amount of which payment has been made by the user

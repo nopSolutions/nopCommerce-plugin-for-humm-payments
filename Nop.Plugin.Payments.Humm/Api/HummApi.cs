@@ -97,10 +97,10 @@ namespace Nop.Plugin.Payments.Humm.Api
         /// Refunds the payment
         /// </summary>
         /// <param name="request">The request to refund payment</param>
-        /// <returns>The <see cref="Task"/>.</returns>
+        /// <returns>The <see cref="Task"/> containing the <see cref="RefundPaymentResponse"/>.</returns>
         /// <exception cref="ArgumentNullException">The request is null.</exception>
         /// <exception cref="ApiException">The request failed due to an underlying issue such as 400+ errors, network connectivity, DNS failure, server certificate validation or timeout.</exception>
-        public virtual Task RefundPaymentAsync(RefundPaymentRequest request)
+        public virtual Task<RefundPaymentResponse> RefundPaymentAsync(RefundPaymentRequest request)
         {
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
@@ -111,7 +111,7 @@ namespace Nop.Plugin.Payments.Humm.Api
                 Method = HttpMethod.Post,
                 Body = request
             };
-            return CallAsync(requestContext);
+            return CallAsync<RefundPaymentResponse>(requestContext);
         }
 
         #endregion

@@ -4,15 +4,15 @@
     Layout = "_ConfigurePlugin";
 }
 
-@await Component.InvokeAsync("StoreScopeConfiguration")
-
 <form asp-controller="HummConfiguration" asp-action="Configure" method="post">
     <div class="cards-group">
         <div class="card card-default">
             <div class="card-body">
+                <p>
+                    <em>Note: Humm supports only GBP currency, so ensure that you have configured the GBP as your primary store currency.</em><br />
+                </p>
                 <div class="form-group row">
                     <div class="col-md-3">
-                        <nop-override-store-checkbox asp-for="IsSandbox_OverrideForStore" asp-input="IsSandbox" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                         <nop-label asp-for="IsSandbox" />
                     </div>
                     <div class="col-md-9">
@@ -23,7 +23,6 @@
                 <div id="sandbox-fields-container">
                     <div class="form-group row">
                         <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="SandboxAccountId_OverrideForStore" asp-input="SandboxAccountId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                             <nop-label asp-for="SandboxAccountId" />
                         </div>
                         <div class="col-md-9">
@@ -33,7 +32,6 @@
                     </div>
                     <div class="form-group row">
                         <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="SandboxClientId_OverrideForStore" asp-input="SandboxClientId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                             <nop-label asp-for="SandboxClientId" />
                         </div>
                         <div class="col-md-9">
@@ -43,7 +41,6 @@
                     </div>
                     <div class="form-group row">
                         <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="SandboxClientSecret_OverrideForStore" asp-input="SandboxClientSecret" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                             <nop-label asp-for="SandboxClientSecret" />
                         </div>
                         <div class="col-md-9">
@@ -53,7 +50,6 @@
                     </div>
                     <div class="form-group row">
                         <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="SandboxRefreshToken_OverrideForStore" asp-input="SandboxRefreshToken" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                             <nop-label asp-for="SandboxRefreshToken" />
                         </div>
                         <div class="col-md-9">
@@ -65,7 +61,6 @@
                 <div id="production-fields-container">
                     <div class="form-group row">
                         <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="ProductionAccountId_OverrideForStore" asp-input="ProductionAccountId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                             <nop-label asp-for="ProductionAccountId" />
                         </div>
                         <div class="col-md-9">
@@ -75,7 +70,6 @@
                     </div>
                     <div class="form-group row">
                         <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="ProductionClientId_OverrideForStore" asp-input="ProductionClientId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                             <nop-label asp-for="ProductionClientId" />
                         </div>
                         <div class="col-md-9">
@@ -85,7 +79,6 @@
                     </div>
                     <div class="form-group row">
                         <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="ProductionClientSecret_OverrideForStore" asp-input="ProductionClientSecret" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                             <nop-label asp-for="ProductionClientSecret" />
                         </div>
                         <div class="col-md-9">
@@ -95,7 +88,6 @@
                     </div>
                     <div class="form-group row">
                         <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="ProductionRefreshToken_OverrideForStore" asp-input="ProductionRefreshToken" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                             <nop-label asp-for="ProductionRefreshToken" />
                         </div>
                         <div class="col-md-9">
@@ -122,7 +114,6 @@
                 </script>
                 <div class="form-group row">
                     <div class="col-md-3">
-                        <nop-override-store-checkbox asp-for="AdditionalFee_OverrideForStore" asp-input="AdditionalFee" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                         <nop-label asp-for="AdditionalFee" />
                     </div>
                     <div class="col-md-9">
@@ -132,7 +123,6 @@
                 </div>
                 <div class="form-group row">
                     <div class="col-md-3">
-                        <nop-override-store-checkbox asp-for="AdditionalFeePercentage_OverrideForStore" asp-input="AdditionalFeePercentage" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                         <nop-label asp-for="AdditionalFeePercentage" />
                     </div>
                     <div class="col-md-9">

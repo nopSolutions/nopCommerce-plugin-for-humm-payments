@@ -21,8 +21,8 @@ namespace Nop.Plugin.Payments.Humm.Services
         #region Fields
 
         private readonly CustomerSettings _customerSettings;
-        private readonly HummPaymentSettings _hummPaymentSettings;
         private readonly HummApi _hummApi;
+        private readonly HummPaymentSettings _hummPaymentSettings;
         private readonly IAddressService _addressService;
         private readonly ICustomerService _customerService;
         private readonly IDateTimeHelper _dateTimeHelper;
@@ -35,8 +35,8 @@ namespace Nop.Plugin.Payments.Humm.Services
 
         public HummService(
             CustomerSettings customerSettings,
-            HummPaymentSettings hummPaymentSettings,
             HummApi hummApi,
+            HummPaymentSettings hummPaymentSettings,
             IAddressService addressService,
             ICustomerService customerService,
             IDateTimeHelper dateTimeHelper,
@@ -45,8 +45,8 @@ namespace Nop.Plugin.Payments.Humm.Services
         )
         {
             _customerSettings = customerSettings;
-            _hummPaymentSettings = hummPaymentSettings;
             _hummApi = hummApi;
+            _hummPaymentSettings = hummPaymentSettings;
             _addressService = addressService;
             _customerService = customerService;
             _dateTimeHelper = dateTimeHelper;
@@ -149,7 +149,7 @@ namespace Nop.Plugin.Payments.Humm.Services
             if (customer == null)
                 errors.Add($"The customer with id '{order.CustomerId}' not found.");
 
-            var customerShippingAddress = !order.PickupInStore
+            var customerShippingAddress = !order.PickupInStore && order.ShippingAddressId.HasValue
                 ? await _addressService.GetAddressByIdAsync(order.ShippingAddressId.Value)
                 : null;
 
@@ -195,14 +195,16 @@ namespace Nop.Plugin.Payments.Humm.Services
                 CustomerInfo = new CustomerInfo
                 {
                     Name = customerName,
-                    Email = customer.Email,
+                    Email = !string.IsNullOrEmpty(customerShippingAddress.Email)
+                        ? customerShippingAddress.Email
+                        : customer.Email,
                     MobileNumber = phoneNumber,
                 },
                 OrderDetails = new OrderDetails
                 {
                     OrderId = order.OrderGuid.ToString(),
-                    Description = $"№{order.CustomOrderNumber}",
-                    Amount = order.OrderTotal * 100,
+                    Description = $"#{order.CustomOrderNumber}",
+                    Amount = order.OrderTotal,
                     Date = _dateTimeHelper.ConvertToUserTime(order.CreatedOnUtc, TimeZoneInfo.Utc, _dateTimeHelper.DefaultStoreTimeZone)
                 }
             };
@@ -273,9 +275,10 @@ namespace Nop.Plugin.Payments.Humm.Services
         /// Refunds the Humm payment transaction by specified order
         /// </summary>
         /// <param name="order">The order to refund Humm payment transaction</param>
+        /// <param name="amountToRefund">The amount to refund</param>
         /// <returns>The <see cref="Task"/> containing the result of refunding the Humm payment transaction.</returns>
         /// <exception cref="ArgumentNullException">The <paramref name="order"/> is null</exception>
-        public virtual async Task<(bool Success, IList<string> Errors)> RefundOrderAsync(Order order)
+        public virtual async Task<(bool Success, IList<string> Errors)> RefundOrderAsync(Order order, decimal amountToRefund)
         {
             var errors = new List<string>();
 
@@ -291,19 +294,29 @@ namespace Nop.Plugin.Payments.Humm.Services
                 AccountId = _hummPaymentSettings.IsSandbox
                     ? _hummPaymentSettings.SandboxAccountId
                     : _hummPaymentSettings.ProductionAccountId,
-                TrackingId = order.CaptureTransactionId
+                TrackingId = order.CaptureTransactionId,
+                Amount = amountToRefund
             };
 
             try
             {
-                await _hummApi.RefundPaymentAsync(getPaymentRequest);
+                var refundPaymentResponse = await _hummApi.RefundPaymentAsync(getPaymentRequest);
+                if (refundPaymentResponse.Success)
+                    return (true, errors);
+                else
+                {
+                    errors.Add(@$"{refundPaymentResponse.Message}
+                        Error id - '{refundPaymentResponse.Error?.Id}'.
+                        Error code - '{refundPaymentResponse.Error?.Code}'.
+                        Error message - '{refundPaymentResponse.Error.Message}'.");
+                }
             }
             catch (ApiException ex)
             {
                 errors.Add(ex.Message);
             }
 
-            return (errors.Count == 0, errors);
+            return (false, errors);
         }
 
         /// <summary>

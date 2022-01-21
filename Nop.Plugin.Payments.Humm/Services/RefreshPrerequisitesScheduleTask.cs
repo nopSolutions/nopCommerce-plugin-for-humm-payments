@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Linq;
 using Nop.Services.Configuration;
 using Nop.Services.Logging;
-using Nop.Services.Stores;
 using Nop.Services.Tasks;
 using Task = System.Threading.Tasks.Task;
 
@@ -15,26 +13,26 @@ namespace Nop.Plugin.Payments.Humm.Services
     {
         #region Fields
 
+        private readonly HummPaymentSettings _hummPaymentSettings;
         private readonly HummService _hummService;
-        private readonly IStoreService _storeService;
-        private readonly ISettingService _settingService;
         private readonly ILogger _logger;
+        private readonly ISettingService _settingService;
 
         #endregion
 
         #region Ctor
 
         public RefreshPrerequisitesScheduleTask(
+            HummPaymentSettings hummPaymentSettings,
             HummService hummService,
-            IStoreService storeService,
-            ISettingService settingService,
-            ILogger logger
+            ILogger logger,
+            ISettingService settingService
         )
         {
+            _hummPaymentSettings = hummPaymentSettings;
             _hummService = hummService;
-            _storeService = storeService;
-            _settingService = settingService;
             _logger = logger;
+            _settingService = settingService;
         }
 
         #endregion
@@ -43,30 +41,19 @@ namespace Nop.Plugin.Payments.Humm.Services
 
         public async Task ExecuteAsync()
         {
-            var stores = await _storeService.GetAllStoresAsync();
-            if (stores?.Any() == true)
+            var result = await _hummService.GetPrerequisitesAsync(_hummPaymentSettings);
+            if (result.Success)
             {
-                foreach (var store in stores)
-                {
-                    var hummPaymentSettings = await _settingService.LoadSettingAsync<HummPaymentSettings>(store.Id);
-                    var result = await _hummService.GetPrerequisitesAsync(hummPaymentSettings);
-                    if (result.Success)
-                    {
-                        hummPaymentSettings.AccessToken = result.AccessToken;
-                        hummPaymentSettings.InstanceUrl = result.InstanceUrl;
+                _hummPaymentSettings.AccessToken = result.AccessToken;
+                _hummPaymentSettings.InstanceUrl = result.InstanceUrl;
 
-                        await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.AccessToken, stores.Count > 1, store.Id, false);
-                        await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.InstanceUrl, stores.Count > 1, store.Id, false);
-
-                        await _settingService.ClearCacheAsync();
-                    }
-                    else
-                    {
-                        await _logger.ErrorAsync(@$"{HummPaymentDefaults.SystemName}: error was occurred while updating the access token 
-                            for the '{store.Name}' store in the '{HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Name}' schedule task.
-                            {string.Join(Environment.NewLine, result.Errors)}");
-                    }
-                }
+                await _settingService.SaveSettingAsync(_hummPaymentSettings);
+            }
+            else
+            {
+                await _logger.ErrorAsync(@$"{HummPaymentDefaults.SystemName}: error was occurred while updating the access token 
+                    in the '{HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Name}' schedule task.
+                    {string.Join(Environment.NewLine, result.Errors)}");
             }
         }
 

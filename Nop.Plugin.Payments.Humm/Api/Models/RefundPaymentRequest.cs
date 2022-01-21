@@ -27,6 +27,15 @@ namespace Nop.Plugin.Payments.Humm.Api.Models
         [JsonProperty("accountId")]
         public string AccountId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the amount to refund
+        /// </summary>
+        /// <remarks>
+        /// Required parameter
+        /// </remarks>
+        [JsonProperty("amountToRefund")]
+        public decimal Amount { get; set; }
+
         #endregion
     }
 }

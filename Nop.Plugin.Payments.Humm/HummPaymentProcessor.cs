@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
+using Nop.Core.Domain.Payments;
 using Nop.Plugin.Payments.Humm.Services;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
@@ -28,11 +29,11 @@ namespace Nop.Plugin.Payments.Humm
         private readonly IActionContextAccessor _actionContextAccessor;
         private readonly ILocalizationService _localizationService;
         private readonly ILogger _logger;
-        private readonly IPaymentService _paymentService;
         private readonly INotificationService _notificationService;
-        private readonly IUrlHelperFactory _urlHelperFactory;
-        private readonly ISettingService _settingService;
+        private readonly IPaymentService _paymentService;
         private readonly IScheduleTaskService _scheduleTaskService;
+        private readonly ISettingService _settingService;
+        private readonly IUrlHelperFactory _urlHelperFactory;
         private readonly IWebHelper _webHelper;
 
         #endregion
@@ -40,7 +41,7 @@ namespace Nop.Plugin.Payments.Humm
         #region Ctor
 
         public HummPaymentProcessor(
-            HummPaymentSettings ecommpayPaymentSettings,
+            HummPaymentSettings hummPaymentSettings,
             HummService hummService,
             IActionContextAccessor actionContextAccessor,
             ILocalizationService localizationService,
@@ -53,7 +54,7 @@ namespace Nop.Plugin.Payments.Humm
             IWebHelper webHelper
         )
         {
-            _hummPaymentSettings = ecommpayPaymentSettings;
+            _hummPaymentSettings = hummPaymentSettings;
             _hummService = hummService;
             _actionContextAccessor = actionContextAccessor;
             _localizationService = localizationService;
@@ -96,7 +97,7 @@ namespace Nop.Plugin.Payments.Humm
                 _actionContextAccessor.ActionContext.HttpContext.Response.Redirect(model.RedirectUrl);
             else
             {
-                await _logger.ErrorAsync(@$"{HummPaymentDefaults.SystemName}: Error when creating the Humm payment transaction for order №{order.CustomOrderNumber}.
+                await _logger.ErrorAsync(@$"{HummPaymentDefaults.SystemName}: Error when creating the Humm payment transaction for order #{order.CustomOrderNumber}.
                     {string.Join(Environment.NewLine, model.Errors)}");
 
                 var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
@@ -151,9 +152,16 @@ namespace Nop.Plugin.Payments.Humm
                 throw new ArgumentNullException(nameof(refundPaymentRequest));
 
             var order = refundPaymentRequest.Order;
-            var result = await _hummService.RefundOrderAsync(order);
+            var result = await _hummService.RefundOrderAsync(order, refundPaymentRequest.AmountToRefund);
             if (result.Success)
-                return new RefundPaymentResult();
+            {
+                return new RefundPaymentResult
+                {
+                    NewPaymentStatus = refundPaymentRequest.IsPartialRefund 
+                        ? PaymentStatus.PartiallyRefunded 
+                        : PaymentStatus.Refunded
+                };
+            }
 
             return new RefundPaymentResult { Errors = result.Errors };
         }

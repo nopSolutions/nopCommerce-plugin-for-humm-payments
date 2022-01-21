@@ -2,16 +2,12 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
-using Nop.Plugin.Payments.Humm.Api;
-using Nop.Plugin.Payments.Humm.Api.Client;
-using Nop.Plugin.Payments.Humm.Api.Models;
 using Nop.Plugin.Payments.Humm.Areas.Admin.Models;
 using Nop.Plugin.Payments.Humm.Services;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Messages;
 using Nop.Services.Security;
-using Nop.Services.Stores;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Mvc.Filters;
@@ -21,39 +17,39 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
     [Area(AreaNames.Admin)]
     [AutoValidateAntiforgeryToken]
     [AuthorizeAdmin]
-    public class HummConfigurationController : BasePluginController
+    public class HummConfigurationController : BasePaymentController
     {
         #region Fields
 
-        private readonly IPermissionService _permissionService;
+        private readonly HummPaymentSettings _hummPaymentSettings;
+        private readonly HummService _hummService;
         private readonly ILocalizationService _localizationService;
         private readonly INotificationService _notificationService;
+        private readonly IPermissionService _permissionService;
         private readonly ISettingService _settingService;
         private readonly IStoreContext _storeContext;
-        private readonly IStoreService _storeService;
-        private readonly HummService _hummService;
 
         #endregion
 
         #region Ctor
 
         public HummConfigurationController(
-            IPermissionService permissionService,
+            HummPaymentSettings hummPaymentSettings,
+            HummService hummService,
             ILocalizationService localizationService,
             INotificationService notificationService,
+            IPermissionService permissionService,
             ISettingService settingService,
-            IStoreContext storeContext,
-            IStoreService storeService,
-            HummService hummService
+            IStoreContext storeContext
         )
         {
-            _permissionService = permissionService;
+            _hummPaymentSettings = hummPaymentSettings;
+            _hummService = hummService;
             _localizationService = localizationService;
             _notificationService = notificationService;
+            _permissionService = permissionService;
             _settingService = settingService;
             _storeContext = storeContext;
-            _storeService = storeService;
-            _hummService = hummService;
         }
 
         #endregion
@@ -69,46 +65,24 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
             if (!await _permissionService.AuthorizeAsync(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
 
-            //load settings for a chosen store scope
-            var storeScope = await _storeContext.GetActiveStoreScopeConfigurationAsync();
-            var hummPaymentSettings = await _settingService.LoadSettingAsync<HummPaymentSettings>(storeScope);
-
             var model = new ConfigurationModel
             {
-                ActiveStoreScopeConfiguration = storeScope,
-                IsSandbox = hummPaymentSettings.IsSandbox,
-                SandboxAccountId = hummPaymentSettings.SandboxAccountId,
-                ProductionAccountId = hummPaymentSettings.ProductionAccountId,
-                SandboxClientId = hummPaymentSettings.SandboxClientId,
-                ProductionClientId = hummPaymentSettings.ProductionClientId,
-                SandboxClientSecret = hummPaymentSettings.SandboxClientSecret,
-                ProductionClientSecret = hummPaymentSettings.ProductionClientSecret,
-                SandboxRefreshToken = hummPaymentSettings.SandboxRefreshToken,
-                ProductionRefreshToken = hummPaymentSettings.ProductionRefreshToken,
-                AdditionalFee = hummPaymentSettings.AdditionalFee,
-                AdditionalFeePercentage = hummPaymentSettings.AdditionalFeePercentage,
+                IsSandbox = _hummPaymentSettings.IsSandbox,
+                SandboxAccountId = _hummPaymentSettings.SandboxAccountId,
+                ProductionAccountId = _hummPaymentSettings.ProductionAccountId,
+                SandboxClientId = _hummPaymentSettings.SandboxClientId,
+                ProductionClientId = _hummPaymentSettings.ProductionClientId,
+                SandboxClientSecret = _hummPaymentSettings.SandboxClientSecret,
+                ProductionClientSecret = _hummPaymentSettings.ProductionClientSecret,
+                SandboxRefreshToken = _hummPaymentSettings.SandboxRefreshToken,
+                ProductionRefreshToken = _hummPaymentSettings.ProductionRefreshToken,
+                AdditionalFee = _hummPaymentSettings.AdditionalFee,
+                AdditionalFeePercentage = _hummPaymentSettings.AdditionalFeePercentage,
             };
 
-            var store = storeScope > 0
-                ? await _storeService.GetStoreByIdAsync(storeScope)
-                : await _storeContext.GetCurrentStoreAsync();
+            var store = await _storeContext.GetCurrentStoreAsync();
             model.ConfirmPaymentEndpoint = $"{store.Url.TrimEnd('/')}{Url.RouteUrl(HummPaymentDefaults.ConfirmPaymentRouteName)}".ToLowerInvariant();
             model.CancelPaymentEndpoint = $"{store.Url.TrimEnd('/')}{Url.RouteUrl(HummPaymentDefaults.CancelPaymentRouteName)}".ToLowerInvariant();
-
-            if (storeScope > 0)
-            {
-                model.IsSandbox_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.IsSandbox, storeScope);
-                model.SandboxAccountId_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.SandboxAccountId, storeScope);
-                model.ProductionAccountId_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.ProductionAccountId, storeScope);
-                model.SandboxClientId_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.SandboxClientId, storeScope);
-                model.ProductionClientId_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.ProductionClientId, storeScope);
-                model.SandboxClientSecret_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.SandboxClientSecret, storeScope);
-                model.ProductionClientSecret_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.ProductionClientSecret, storeScope);
-                model.SandboxRefreshToken_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.SandboxRefreshToken, storeScope);
-                model.ProductionRefreshToken_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.ProductionRefreshToken, storeScope);
-                model.AdditionalFee_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.AdditionalFee, storeScope);
-                model.AdditionalFeePercentage_OverrideForStore = await _settingService.SettingExistsAsync(hummPaymentSettings, x => x.AdditionalFeePercentage, storeScope);
-            }
 
             return View("~/Plugins/Payments.Humm/Areas/Admin/Views/Configure.cshtml", model);
         }
@@ -127,28 +101,24 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
             if (!ModelState.IsValid)
                 return await Configure();
 
-            //load settings for a chosen store scope
-            var storeScope = await _storeContext.GetActiveStoreScopeConfigurationAsync();
-            var hummPaymentSettings = await _settingService.LoadSettingAsync<HummPaymentSettings>(storeScope);
-             
             //save settings
-            hummPaymentSettings.IsSandbox = model.IsSandbox;
-            hummPaymentSettings.SandboxAccountId = model.SandboxAccountId;
-            hummPaymentSettings.ProductionAccountId = model.ProductionAccountId;
-            hummPaymentSettings.SandboxClientId = model.SandboxClientId;
-            hummPaymentSettings.ProductionClientId = model.ProductionClientId;
-            hummPaymentSettings.SandboxClientSecret = model.SandboxClientSecret;
-            hummPaymentSettings.ProductionClientSecret = model.ProductionClientSecret;
-            hummPaymentSettings.SandboxRefreshToken = model.SandboxRefreshToken;
-            hummPaymentSettings.ProductionRefreshToken = model.ProductionRefreshToken;
-            hummPaymentSettings.AdditionalFee = model.AdditionalFee;
-            hummPaymentSettings.AdditionalFeePercentage = model.AdditionalFeePercentage;
+            _hummPaymentSettings.IsSandbox = model.IsSandbox;
+            _hummPaymentSettings.SandboxAccountId = model.SandboxAccountId;
+            _hummPaymentSettings.ProductionAccountId = model.ProductionAccountId;
+            _hummPaymentSettings.SandboxClientId = model.SandboxClientId;
+            _hummPaymentSettings.ProductionClientId = model.ProductionClientId;
+            _hummPaymentSettings.SandboxClientSecret = model.SandboxClientSecret;
+            _hummPaymentSettings.ProductionClientSecret = model.ProductionClientSecret;
+            _hummPaymentSettings.SandboxRefreshToken = model.SandboxRefreshToken;
+            _hummPaymentSettings.ProductionRefreshToken = model.ProductionRefreshToken;
+            _hummPaymentSettings.AdditionalFee = model.AdditionalFee;
+            _hummPaymentSettings.AdditionalFeePercentage = model.AdditionalFeePercentage;
 
-            var result = await _hummService.GetPrerequisitesAsync(hummPaymentSettings);
+            var result = await _hummService.GetPrerequisitesAsync(_hummPaymentSettings);
             if (result.Success)
             {
-                hummPaymentSettings.AccessToken = result.AccessToken;
-                hummPaymentSettings.InstanceUrl = result.InstanceUrl;
+                _hummPaymentSettings.AccessToken = result.AccessToken;
+                _hummPaymentSettings.InstanceUrl = result.InstanceUrl;
             }
             else
             {
@@ -157,25 +127,7 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
                 return View("~/Plugins/Payments.Humm/Areas/Admin/Views/Configure.cshtml", model);
             }
 
-            /* We do not clear cache after each setting update.
-             * This behavior can increase performance because cached settings will not be cleared 
-             * and loaded from database after each update */
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.IsSandbox, model.IsSandbox_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.SandboxAccountId, model.SandboxAccountId_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.ProductionAccountId, model.ProductionAccountId_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.SandboxClientId, model.SandboxClientId_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.ProductionClientId, model.ProductionClientId_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.SandboxClientSecret, model.SandboxClientSecret_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.ProductionClientSecret, model.ProductionClientSecret_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.SandboxRefreshToken, model.SandboxRefreshToken_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.ProductionRefreshToken, model.ProductionRefreshToken_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.AdditionalFee, model.AdditionalFee_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.AdditionalFeePercentage, model.AdditionalFeePercentage_OverrideForStore, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.AccessToken, storeScope > 0, storeScope, false);
-            await _settingService.SaveSettingOverridablePerStoreAsync(hummPaymentSettings, x => x.InstanceUrl, storeScope > 0, storeScope, false);
-
-            //now clear settings cache
-            await _settingService.ClearCacheAsync();
+            await _settingService.SaveSettingAsync(_hummPaymentSettings);
 
             _notificationService.SuccessNotification(await _localizationService.GetResourceAsync("Admin.Plugins.Saved"));
 
