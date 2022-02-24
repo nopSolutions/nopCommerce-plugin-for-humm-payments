@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Nop.Services.Configuration;
 using Nop.Services.Logging;
-using Nop.Services.Tasks;
-using Task = System.Threading.Tasks.Task;
+using Nop.Services.ScheduleTasks;
 
 namespace Nop.Plugin.Payments.Humm.Services
 {
@@ -22,12 +22,10 @@ namespace Nop.Plugin.Payments.Humm.Services
 
         #region Ctor
 
-        public RefreshPrerequisitesScheduleTask(
-            HummPaymentSettings hummPaymentSettings,
+        public RefreshPrerequisitesScheduleTask(HummPaymentSettings hummPaymentSettings,
             HummService hummService,
             ILogger logger,
-            ISettingService settingService
-        )
+            ISettingService settingService)
         {
             _hummPaymentSettings = hummPaymentSettings;
             _hummService = hummService;

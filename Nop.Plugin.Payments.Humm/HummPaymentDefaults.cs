@@ -1,5 +1,5 @@
 ﻿using Nop.Core;
-using Nop.Core.Domain.Tasks;
+using Nop.Core.Domain.ScheduleTasks;
 
 namespace Nop.Plugin.Payments.Humm
 {

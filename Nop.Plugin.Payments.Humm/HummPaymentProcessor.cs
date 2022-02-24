@@ -13,10 +13,10 @@ using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Logging;
 using Nop.Services.Messages;
+using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Plugins;
-using Nop.Services.Tasks;
-using Task = System.Threading.Tasks.Task;
+using Nop.Services.ScheduleTasks;
 
 namespace Nop.Plugin.Payments.Humm
 {
@@ -30,7 +30,7 @@ namespace Nop.Plugin.Payments.Humm
         private readonly ILocalizationService _localizationService;
         private readonly ILogger _logger;
         private readonly INotificationService _notificationService;
-        private readonly IPaymentService _paymentService;
+        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
         private readonly IScheduleTaskService _scheduleTaskService;
         private readonly ISettingService _settingService;
         private readonly IUrlHelperFactory _urlHelperFactory;
@@ -40,30 +40,28 @@ namespace Nop.Plugin.Payments.Humm
 
         #region Ctor
 
-        public HummPaymentProcessor(
-            HummPaymentSettings hummPaymentSettings,
+        public HummPaymentProcessor(HummPaymentSettings hummPaymentSettings,
             HummService hummService,
             IActionContextAccessor actionContextAccessor,
             ILocalizationService localizationService,
             ILogger logger,
-            IPaymentService paymentService,
             INotificationService notificationService,
-            IUrlHelperFactory urlHelperFactory,
-            ISettingService settingService,
+            IOrderTotalCalculationService orderTotalCalculationService,
             IScheduleTaskService scheduleTaskService,
-            IWebHelper webHelper
-        )
+            ISettingService settingService,
+            IUrlHelperFactory urlHelperFactory,
+            IWebHelper webHelper)
         {
             _hummPaymentSettings = hummPaymentSettings;
             _hummService = hummService;
             _actionContextAccessor = actionContextAccessor;
             _localizationService = localizationService;
             _logger = logger;
-            _paymentService = paymentService;
             _notificationService = notificationService;
-            _urlHelperFactory = urlHelperFactory;
-            _settingService = settingService;
+            _orderTotalCalculationService = orderTotalCalculationService;
             _scheduleTaskService = scheduleTaskService;
+            _settingService = settingService;
+            _urlHelperFactory = urlHelperFactory;
             _webHelper = webHelper;
         }
 
@@ -126,8 +124,8 @@ namespace Nop.Plugin.Payments.Humm
         /// <returns>The <see cref="Task"/> containing a additional handling fee</returns>
         public async Task<decimal> GetAdditionalHandlingFeeAsync(IList<ShoppingCartItem> cart)
         {
-            return await _paymentService.CalculateAdditionalFeeAsync(cart,
-                _hummPaymentSettings.AdditionalFee, _hummPaymentSettings.AdditionalFeePercentage);
+            return await _orderTotalCalculationService
+                .CalculatePaymentAdditionalFeeAsync(cart, _hummPaymentSettings.AdditionalFee, _hummPaymentSettings.AdditionalFeePercentage);
         }
 
         /// <summary>
@@ -268,7 +266,7 @@ namespace Nop.Plugin.Payments.Humm
             if (await _scheduleTaskService.GetTaskByTypeAsync(HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Type) is null)
                 await _scheduleTaskService.InsertTaskAsync(HummPaymentDefaults.RefreshPrerequisitesScheduleTask);
 
-            await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
+            await _localizationService.AddOrUpdateLocaleResourceAsync(new Dictionary<string, string>
             {
                 ["Plugins.Payments.Humm.Fields.IsSandbox"] = "Use sandbox",
                 ["Plugins.Payments.Humm.Fields.IsSandbox.Hint"] = "Determine whether to use the sandbox environment for testing purposes.",

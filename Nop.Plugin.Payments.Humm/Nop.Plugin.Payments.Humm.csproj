@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Copyright>Copyright © Nop Solutions, Ltd</Copyright>
     <Company>Nop Solutions, Ltd</Company>
     <Authors>Nop Solutions, Ltd</Authors>
-    <PackageLicenseUrl>https://github.com/nopSolutions/nopCommerce-plugin-for-humm-payments/blob/nopCommerce-4.40/LICENSE.md</PackageLicenseUrl>
+    <PackageLicenseUrl>https://github.com/nopSolutions/nopCommerce-plugin-for-humm-payments/blob/nopCommerce-4.50/LICENSE.md</PackageLicenseUrl>
     <PackageProjectUrl>https://www.nopcommerce.com/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nopSolutions/nopCommerce-plugin-for-humm-payments</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
@@ -46,6 +46,7 @@
 
   <!-- This target execute after "Build" target -->
   <Target Name="NopTarget" AfterTargets="Build">
+    <!-- Delete unnecessary libraries from plugins path -->
     <MSBuild Projects="@(ClearPluginAssemblies)" Properties="PluginPath=$(MSBuildProjectDirectory)\$(OutDir)" Targets="NopClear" />
   </Target>
 
