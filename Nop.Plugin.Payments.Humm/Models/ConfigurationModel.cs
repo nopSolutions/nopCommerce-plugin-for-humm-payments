@@ -1,7 +1,7 @@
 ﻿using Nop.Web.Framework.Models;
 using Nop.Web.Framework.Mvc.ModelBinding;
 
-namespace Nop.Plugin.Payments.Humm.Areas.Admin.Models
+namespace Nop.Plugin.Payments.Humm.Models
 {
     /// <summary>
     /// Represents a plugin configuration model.
@@ -75,18 +75,6 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Models
         /// </summary>
         [NopResourceDisplayName("Plugins.Payments.Humm.Fields.AdditionalFeePercentage")]
         public bool AdditionalFeePercentage { get; set; }
-
-        /// <summary>
-        /// Gets or sets a confirm payment endpoint.
-        /// </summary>
-        [NopResourceDisplayName("Plugins.Payments.Humm.Fields.ConfirmPaymentEndpoint")]
-        public string ConfirmPaymentEndpoint { get; set; }
-
-        /// <summary>
-        /// Gets or sets a cancel payment endpoint.
-        /// </summary>
-        [NopResourceDisplayName("Plugins.Payments.Humm.Fields.CancelPaymentEndpoint")]
-        public string CancelPaymentEndpoint { get; set; }
 
         #endregion
     }

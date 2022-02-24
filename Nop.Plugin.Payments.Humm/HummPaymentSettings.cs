@@ -74,6 +74,11 @@ namespace Nop.Plugin.Payments.Humm
         /// </summary>
         public bool AdditionalFeePercentage { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to log errors of IPN requests
+        /// </summary>
+        public bool LogIpnErrors { get; set; }
+
         #endregion
     }
 }

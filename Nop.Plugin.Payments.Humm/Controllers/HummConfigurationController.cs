@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Nop.Core;
-using Nop.Plugin.Payments.Humm.Areas.Admin.Models;
+using Nop.Plugin.Payments.Humm.Models;
 using Nop.Plugin.Payments.Humm.Services;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
@@ -12,7 +11,7 @@ using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Mvc.Filters;
 
-namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
+namespace Nop.Plugin.Payments.Humm.Controllers
 {
     [Area(AreaNames.Admin)]
     [AutoValidateAntiforgeryToken]
@@ -27,21 +26,17 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
         private readonly INotificationService _notificationService;
         private readonly IPermissionService _permissionService;
         private readonly ISettingService _settingService;
-        private readonly IStoreContext _storeContext;
 
         #endregion
 
         #region Ctor
 
-        public HummConfigurationController(
-            HummPaymentSettings hummPaymentSettings,
+        public HummConfigurationController(HummPaymentSettings hummPaymentSettings,
             HummService hummService,
             ILocalizationService localizationService,
             INotificationService notificationService,
             IPermissionService permissionService,
-            ISettingService settingService,
-            IStoreContext storeContext
-        )
+            ISettingService settingService)
         {
             _hummPaymentSettings = hummPaymentSettings;
             _hummService = hummService;
@@ -49,17 +44,12 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
             _notificationService = notificationService;
             _permissionService = permissionService;
             _settingService = settingService;
-            _storeContext = storeContext;
         }
 
         #endregion
 
         #region Methods
 
-        /// <summary>
-        /// Configures the plugin in admin area.
-        /// </summary>
-        /// <returns>The view to configure.</returns>
         public async Task<IActionResult> Configure()
         {
             if (!await _permissionService.AuthorizeAsync(StandardPermissionProvider.ManagePaymentMethods))
@@ -80,18 +70,9 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
                 AdditionalFeePercentage = _hummPaymentSettings.AdditionalFeePercentage,
             };
 
-            var store = await _storeContext.GetCurrentStoreAsync();
-            model.ConfirmPaymentEndpoint = $"{store.Url.TrimEnd('/')}{Url.RouteUrl(HummPaymentDefaults.ConfirmPaymentRouteName)}".ToLowerInvariant();
-            model.CancelPaymentEndpoint = $"{store.Url.TrimEnd('/')}{Url.RouteUrl(HummPaymentDefaults.CancelPaymentRouteName)}".ToLowerInvariant();
-
-            return View("~/Plugins/Payments.Humm/Areas/Admin/Views/Configure.cshtml", model);
+            return View("~/Plugins/Payments.Humm/Views/Configure.cshtml", model);
         }
 
-        /// <summary>
-        /// Configures the plugin in admin area.
-        /// </summary>
-        /// <param name="model">The configuration model.</param>
-        /// <returns>The view to configure.</returns>
         [HttpPost]
         public async Task<IActionResult> Configure(ConfigurationModel model)
         {
@@ -124,7 +105,7 @@ namespace Nop.Plugin.Payments.Humm.Areas.Admin.Controllers
             {
                 _notificationService.ErrorNotification(string.Join(Environment.NewLine, result.Errors));
 
-                return View("~/Plugins/Payments.Humm/Areas/Admin/Views/Configure.cshtml", model);
+                return View("~/Plugins/Payments.Humm/Views/Configure.cshtml", model);
             }
 
             await _settingService.SaveSettingAsync(_hummPaymentSettings);

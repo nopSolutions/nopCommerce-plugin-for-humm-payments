@@ -92,19 +92,18 @@ namespace Nop.Plugin.Payments.Humm
                 throw new ArgumentNullException(nameof(postProcessPaymentRequest));
 
             var order = postProcessPaymentRequest.Order;
-            var model = await _hummService.CreatePaymentAsync(order);
-            if (model.Success)
-                _actionContextAccessor.ActionContext.HttpContext.Response.Redirect(model.RedirectUrl);
+            var (success, redirectUrl, errors) = await _hummService.CreatePaymentAsync(order);
+            if (success)
+                _actionContextAccessor.ActionContext.HttpContext.Response.Redirect(redirectUrl);
             else
             {
-                await _logger.ErrorAsync(@$"{HummPaymentDefaults.SystemName}: Error when creating the Humm payment transaction for order #{order.CustomOrderNumber}.
-                    {string.Join(Environment.NewLine, model.Errors)}");
+                await _logger.ErrorAsync($"{HummPaymentDefaults.SystemName}: Error when creating the Humm payment transaction for order " +
+                    $"#{order.CustomOrderNumber}. {string.Join(Environment.NewLine, errors)}");
 
                 var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
-                var failUrl = urlHelper.RouteUrl(HummPaymentDefaults.OrderDetailsRouteName, new { orderId = order.Id }, _webHelper.GetCurrentRequestProtocol());
+                var failUrl = urlHelper.RouteUrl("OrderDetails", new { orderId = order.Id }, _webHelper.GetCurrentRequestProtocol());
 
-                _notificationService.ErrorNotification(
-                    await _localizationService.GetResourceAsync("Plugins.Payments.Humm.InvalidPayment"));
+                _notificationService.ErrorNotification(await _localizationService.GetResourceAsync("Plugins.Payments.Humm.InvalidPayment"));
 
                 _actionContextAccessor.ActionContext.HttpContext.Response.Redirect(failUrl);
             }
@@ -152,18 +151,16 @@ namespace Nop.Plugin.Payments.Humm
                 throw new ArgumentNullException(nameof(refundPaymentRequest));
 
             var order = refundPaymentRequest.Order;
-            var result = await _hummService.RefundOrderAsync(order, refundPaymentRequest.AmountToRefund);
-            if (result.Success)
-            {
-                return new RefundPaymentResult
-                {
-                    NewPaymentStatus = refundPaymentRequest.IsPartialRefund 
-                        ? PaymentStatus.PartiallyRefunded 
-                        : PaymentStatus.Refunded
-                };
-            }
+            var (success, errors) = await _hummService.RefundOrderAsync(order, refundPaymentRequest.AmountToRefund);
+            if (!success)
+                return new RefundPaymentResult { Errors = errors };
 
-            return new RefundPaymentResult { Errors = result.Errors };
+            return new RefundPaymentResult
+            {
+                NewPaymentStatus = refundPaymentRequest.IsPartialRefund
+                    ? PaymentStatus.PartiallyRefunded
+                    : PaymentStatus.Refunded
+            };
         }
 
         /// <summary>
@@ -265,9 +262,10 @@ namespace Nop.Plugin.Payments.Humm
             await _settingService.SaveSettingAsync(new HummPaymentSettings
             {
                 IsSandbox = true,
+                LogIpnErrors = true
             });
 
-            if (await _scheduleTaskService.GetTaskByTypeAsync(HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Type) == null)
+            if (await _scheduleTaskService.GetTaskByTypeAsync(HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Type) is null)
                 await _scheduleTaskService.InsertTaskAsync(HummPaymentDefaults.RefreshPrerequisitesScheduleTask);
 
             await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
@@ -294,10 +292,6 @@ namespace Nop.Plugin.Payments.Humm
                 ["Plugins.Payments.Humm.Fields.AdditionalFee.Hint"] = "Enter additional fee to charge your customers.",
                 ["Plugins.Payments.Humm.Fields.AdditionalFeePercentage"] = "Additional fee. Use percentage",
                 ["Plugins.Payments.Humm.Fields.AdditionalFeePercentage.Hint"] = "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.",
-                ["Plugins.Payments.Humm.Fields.ConfirmPaymentEndpoint"] = "Confirm payment endpoint",
-                ["Plugins.Payments.Humm.Fields.ConfirmPaymentEndpoint.Hint"] = "The URL to receive callbacks about transactions. Provide it to the Humm specialists during integration.",
-                ["Plugins.Payments.Humm.Fields.CancelPaymentEndpoint"] = "Cancel payment endpoint",
-                ["Plugins.Payments.Humm.Fields.CancelPaymentEndpoint.Hint"] = "The URL to receive callbacks about transactions. Provide it to the Humm specialists during integration.",
                 ["Plugins.Payments.Humm.Fields.AccountId.Required"] = "The account ID is required.",
                 ["Plugins.Payments.Humm.Fields.ClientId.Required"] = "The client ID is required.",
                 ["Plugins.Payments.Humm.Fields.ClientSecret.Required"] = "The client secret is required.",
@@ -315,12 +309,12 @@ namespace Nop.Plugin.Payments.Humm
         /// Uninstall the plugin
         /// </summary>
         /// <returns>The <see cref="Task"/></returns>
-        public async override Task UninstallAsync()
+        public override async Task UninstallAsync()
         {
             await _settingService.DeleteSettingAsync<HummPaymentSettings>();
 
             var task = await _scheduleTaskService.GetTaskByTypeAsync(HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Type);
-            if (task != null)
+            if (task is not null)
                 await _scheduleTaskService.DeleteTaskAsync(task);
 
             await _localizationService.DeleteLocaleResourcesAsync("Plugins.Payments.Humm");
@@ -349,7 +343,7 @@ namespace Nop.Plugin.Payments.Humm
         /// <summary>
         /// Gets a value indicating whether partial refund is supported
         /// </summary>
-        public bool SupportPartiallyRefund => false;
+        public bool SupportPartiallyRefund => true;
 
         /// <summary>
         /// Gets a value indicating whether refund is supported

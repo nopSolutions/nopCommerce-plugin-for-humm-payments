@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 
 namespace Nop.Plugin.Payments.Humm.Api.Models
 {
@@ -50,6 +51,18 @@ namespace Nop.Plugin.Payments.Humm.Api.Models
         /// </summary>
         [JsonProperty("errorMessage")]
         public string ErrorMessage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the payment amount that was paid in the final step of purchase
+        /// </summary>
+        [JsonProperty("paymentAmount")]
+        public decimal? PaymentAmount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the date on which payment has been done successfully
+        /// </summary>
+        [JsonProperty("paymentDate")]
+        public DateTime? PaymentDate { get; set; }
 
         #endregion
     }

@@ -19,6 +19,12 @@ namespace Nop.Plugin.Payments.Humm.Api.Models
         public string AccountId { get; set; }
 
         /// <summary>
+        /// Gets or sets URL the can be dynamically used by Humm to return the customer to checkout when the user interaction is completed on the hosted page
+        /// </summary>
+        [JsonProperty("checkout_returnURL")]
+        public string ReturnUrl { get; set; }
+
+        /// <summary>
         /// Gets or sets the customer info
         /// </summary>
         /// <remarks>

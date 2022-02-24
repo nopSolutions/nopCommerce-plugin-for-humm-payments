@@ -27,7 +27,7 @@ namespace Nop.Plugin.Payments.Humm.Api
         /// </summary>
         /// <returns>The <see cref="Task"/> containing the <see cref="GetPrerequisitesResponse"/>.</returns>
         /// <exception cref="ApiException">The request failed due to an underlying issue such as 400+ errors, network connectivity, DNS failure, server certificate validation or timeout.</exception>
-        public virtual Task<GetPrerequisitesResponse> GetPrerequisitesAsync()
+        public Task<GetPrerequisitesResponse> GetPrerequisitesAsync()
         {
             var authorizeEndpointUri = Settings.IsSandbox
                 ? HummPaymentDefaults.API.Endpoints.AuthorizeSandbox
@@ -58,7 +58,7 @@ namespace Nop.Plugin.Payments.Humm.Api
         /// <returns>The <see cref="Task"/> containing the <see cref="InitiateProcessResponse"/>.</returns>
         /// <exception cref="ArgumentNullException">The request is null.</exception>
         /// <exception cref="ApiException">The request failed due to an underlying issue such as 400+ errors, network connectivity, DNS failure, server certificate validation or timeout.</exception>
-        public virtual Task<InitiateProcessResponse> InitiatePaymentProcessAsync(InitiateProcessRequest request)
+        public Task<InitiateProcessResponse> InitiatePaymentProcessAsync(InitiateProcessRequest request)
         {
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
@@ -79,7 +79,7 @@ namespace Nop.Plugin.Payments.Humm.Api
         /// <returns>The <see cref="Task"/> containing the <see cref="GetPaymentDetailsResponse"/>.</returns>
         /// <exception cref="ArgumentNullException">The request is null.</exception>
         /// <exception cref="ApiException">The request failed due to an underlying issue such as 400+ errors, network connectivity, DNS failure, server certificate validation or timeout.</exception>
-        public virtual Task<GetPaymentDetailsResponse> GetPaymentDetailsAsync(GetPaymentDetailsRequest request)
+        public Task<GetPaymentDetailsResponse> GetPaymentDetailsAsync(GetPaymentDetailsRequest request)
         {
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
@@ -100,7 +100,7 @@ namespace Nop.Plugin.Payments.Humm.Api
         /// <returns>The <see cref="Task"/> containing the <see cref="RefundPaymentResponse"/>.</returns>
         /// <exception cref="ArgumentNullException">The request is null.</exception>
         /// <exception cref="ApiException">The request failed due to an underlying issue such as 400+ errors, network connectivity, DNS failure, server certificate validation or timeout.</exception>
-        public virtual Task<RefundPaymentResponse> RefundPaymentAsync(RefundPaymentRequest request)
+        public Task<RefundPaymentResponse> RefundPaymentAsync(RefundPaymentRequest request)
         {
             if (request is null)
                 throw new ArgumentNullException(nameof(request));

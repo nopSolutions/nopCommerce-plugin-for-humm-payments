@@ -61,7 +61,7 @@ namespace Nop.Plugin.Payments.Humm.Api.Client
         /// <returns>The <see cref="Task"/> containing the deserialized body.</returns>
         /// <exception cref="ArgumentNullException">The context is null.</exception>
         /// <exception cref="ApiException">The request failed due to an underlying issue such as 400+ errors, network connectivity, DNS failure, server certificate validation or timeout.</exception>
-        protected virtual async Task<TResponse> CallAsync<TResponse>(RequestContext context, [CallerMemberName] string callerName = "")
+        protected async Task<TResponse> CallAsync<TResponse>(RequestContext context, [CallerMemberName] string callerName = "")
         {
             var response = await CallAsync(context, callerName);
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -77,7 +77,7 @@ namespace Nop.Plugin.Payments.Humm.Api.Client
         /// <returns>The <see cref="Task"/> containing the <see cref="HttpResponseMessage"/>.</returns>
         /// <exception cref="ArgumentNullException">The context is null.</exception>
         /// <exception cref="ApiException">The request failed due to an underlying issue such as 400+ errors, network connectivity, DNS failure, server certificate validation or timeout.</exception>
-        protected virtual async Task<HttpResponseMessage> CallAsync(RequestContext context, [CallerMemberName] string callerName = "")
+        protected async Task<HttpResponseMessage> CallAsync(RequestContext context, [CallerMemberName] string callerName = "")
         {
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
@@ -90,7 +90,7 @@ namespace Nop.Plugin.Payments.Humm.Api.Client
                 : context.Path;
 
             var request = new HttpRequestMessage(context.Method, requestUri);
-            
+
             request.Headers.Authorization = !string.IsNullOrWhiteSpace(Settings.AccessToken)
                 ? new AuthenticationHeaderValue("Bearer", Settings.AccessToken)
                 : null;
@@ -104,7 +104,7 @@ namespace Nop.Plugin.Payments.Humm.Api.Client
                 request.Content = new StringContent(content, Encoding.UTF8, MimeTypes.ApplicationJson);
             }
 
-            HttpResponseMessage response = null;
+            HttpResponseMessage response;
             try
             {
                 response = await _httpClient.SendAsync(request);
@@ -130,13 +130,12 @@ namespace Nop.Plugin.Payments.Humm.Api.Client
                 {
                 }
 
-                if (error == null)
+                if (error is null)
                     message = responseContent;
                 else
                 {
-                    message += @$"
-                        Error code - '{error.ErrorCode}'.
-                        Error description - '{error.ErrorDescription}'.";
+                    message += $"{(!string.IsNullOrEmpty(error.ErrorCode) ? $"Error code - '{error.ErrorCode}'" : null)}" +
+                        $"{(!string.IsNullOrEmpty(error.ErrorDescription) ? $"Error description - '{error.ErrorDescription}'" : null)}";
                 }
 
                 throw new ApiException(statusCode, message, error);

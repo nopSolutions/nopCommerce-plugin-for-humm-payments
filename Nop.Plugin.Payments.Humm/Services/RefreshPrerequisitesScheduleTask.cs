@@ -51,9 +51,9 @@ namespace Nop.Plugin.Payments.Humm.Services
             }
             else
             {
-                await _logger.ErrorAsync(@$"{HummPaymentDefaults.SystemName}: error was occurred while updating the access token 
-                    in the '{HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Name}' schedule task.
-                    {string.Join(Environment.NewLine, result.Errors)}");
+                await _logger.ErrorAsync($"{HummPaymentDefaults.SystemName}: error was occurred while updating the access token in the " +
+                    $"'{HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Name}' schedule task. " +
+                    $"{string.Join(Environment.NewLine, result.Errors)}");
             }
         }
 

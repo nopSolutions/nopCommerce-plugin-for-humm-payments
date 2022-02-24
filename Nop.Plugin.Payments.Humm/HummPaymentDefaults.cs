@@ -19,24 +19,19 @@ namespace Nop.Plugin.Payments.Humm
         public static string ConfigurationRouteName => "Plugin.Payments.Humm.Configure";
 
         /// <summary>
-        /// Gets the order details route name
+        /// Gets the confirm/cancel payment route name
         /// </summary>
-        public static string OrderDetailsRouteName => "OrderDetails";
+        public static string CheckoutCompletedRouteName => "Plugin.Payments.Humm.Completed";
 
         /// <summary>
-        /// Gets the confirm payment route name
+        /// Gets the name of the generic attribute that is used to store a tracking ID
         /// </summary>
-        public static string ConfirmPaymentRouteName => "Plugin.Payments.Humm.ConfirmPayment";
-
-        /// <summary>
-        /// Gets the cancel payment route name
-        /// </summary>
-        public static string CancelPaymentRouteName => "Plugin.Payments.Humm.CancelPayment";
+        public static string TrackingIdAttribute => "Humm.Order.TrackingId";
 
         /// <summary>
         /// Gets the schedule task to refresh <see cref="HummPaymentSettings.AccessToken"/> and <see cref="HummPaymentSettings.InstanceUrl"/> for store(s).
         /// </summary>
-        public static ScheduleTask RefreshPrerequisitesScheduleTask => new ScheduleTask
+        public static ScheduleTask RefreshPrerequisitesScheduleTask => new()
         {
             Enabled = true,
             Seconds = 60 * 60,
@@ -62,7 +57,7 @@ namespace Nop.Plugin.Payments.Humm
             /// <summary>
             /// Gets the datetime format
             /// </summary>
-            public static string DatetimeFormat = "yyyy-MM-dd";
+            public static string DatetimeFormat => "yyyy-MM-dd";
 
             /// <summary>
             /// Represents a endpoints defaults

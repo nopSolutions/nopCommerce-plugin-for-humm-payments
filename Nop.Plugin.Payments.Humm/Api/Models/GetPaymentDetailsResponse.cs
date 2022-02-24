@@ -1,5 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Nop.Plugin.Payments.Humm.Api.Models
 {
@@ -17,6 +18,7 @@ namespace Nop.Plugin.Payments.Humm.Api.Models
         /// Required parameter
         /// </remarks>
         [JsonProperty("status")]
+        [JsonConverter(typeof(StringEnumConverter))]
         public PaymentStatus? Status { get; set; }
 
         /// <summary>
@@ -50,7 +52,7 @@ namespace Nop.Plugin.Payments.Humm.Api.Models
         /// Cancellation date of Checkout, if the checkout app has been cancelled.
         /// </summary>
         /// <remarks>
-        /// Required parameter Required (if Checkout has been cancelled at humm end) and must of format YYYY-MM-DD)
+        /// Required parameter (if Checkout has been cancelled at humm end) and must of format YYYY-MM-DD)
         /// </remarks>
         [JsonProperty("cancellationDate")]
         public DateTime? CancellationDate { get; set; }

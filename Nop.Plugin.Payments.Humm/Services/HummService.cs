@@ -1,15 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Nop.Core;
+using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Orders;
+using Nop.Data;
 using Nop.Plugin.Payments.Humm.Api;
 using Nop.Plugin.Payments.Humm.Api.Client;
 using Nop.Plugin.Payments.Humm.Api.Models;
 using Nop.Services.Common;
 using Nop.Services.Customers;
 using Nop.Services.Helpers;
-using Nop.Services.Orders;
 
 namespace Nop.Plugin.Payments.Humm.Services
 {
@@ -23,35 +29,45 @@ namespace Nop.Plugin.Payments.Humm.Services
         private readonly CustomerSettings _customerSettings;
         private readonly HummApi _hummApi;
         private readonly HummPaymentSettings _hummPaymentSettings;
+        private readonly IActionContextAccessor _actionContextAccessor;
         private readonly IAddressService _addressService;
         private readonly ICustomerService _customerService;
         private readonly IDateTimeHelper _dateTimeHelper;
         private readonly IGenericAttributeService _genericAttributeService;
-        private readonly IOrderService _orderService;
+        private readonly IRepository<GenericAttribute> _genericAttributeRepository;
+        private readonly IRepository<Order> _orderRepository;
+        private readonly IUrlHelperFactory _urlHelperFactory;
+        private readonly IWebHelper _webHelper;
 
         #endregion
 
         #region Ctor
 
-        public HummService(
-            CustomerSettings customerSettings,
+        public HummService(CustomerSettings customerSettings,
             HummApi hummApi,
             HummPaymentSettings hummPaymentSettings,
+            IActionContextAccessor actionContextAccessor,
             IAddressService addressService,
             ICustomerService customerService,
             IDateTimeHelper dateTimeHelper,
             IGenericAttributeService genericAttributeService,
-            IOrderService orderService
-        )
+            IRepository<GenericAttribute> genericAttributeRepository,
+            IRepository<Order> orderRepository,
+            IUrlHelperFactory urlHelperFactory,
+            IWebHelper webHelper)
         {
             _customerSettings = customerSettings;
             _hummApi = hummApi;
             _hummPaymentSettings = hummPaymentSettings;
+            _actionContextAccessor = actionContextAccessor;
             _addressService = addressService;
             _customerService = customerService;
             _dateTimeHelper = dateTimeHelper;
             _genericAttributeService = genericAttributeService;
-            _orderService = orderService;
+            _genericAttributeRepository = genericAttributeRepository;
+            _orderRepository = orderRepository;
+            _urlHelperFactory = urlHelperFactory;
+            _webHelper = webHelper;
         }
 
         #endregion
@@ -62,7 +78,7 @@ namespace Nop.Plugin.Payments.Humm.Services
         /// Returns the value indicating whether to plugin is configured.
         /// </summary>
         /// <returns>The value indicating whether to plugin is configured</returns>
-        public virtual bool IsConfigured()
+        public bool IsConfigured()
         {
             return ValidateConfiguration(_hummPaymentSettings).Success;
         }
@@ -73,7 +89,7 @@ namespace Nop.Plugin.Payments.Humm.Services
         /// <param name="settings">The Humm plugin settings to get pre-requisites.</param>
         /// <returns>The <see cref="Task"/> containing the result of getting the pre-requisites.</returns>
         /// <exception cref="ArgumentNullException">The <paramref name="settings"/> is null</exception>
-        public virtual async Task<(bool Success, string AccessToken, string InstanceUrl, IList<string> Errors)> GetPrerequisitesAsync(HummPaymentSettings settings)
+        public async Task<(bool Success, string AccessToken, string InstanceUrl, IList<string> Errors)> GetPrerequisitesAsync(HummPaymentSettings settings)
         {
             if (settings is null)
                 throw new ArgumentNullException(nameof(settings));
@@ -134,7 +150,7 @@ namespace Nop.Plugin.Payments.Humm.Services
         /// <param name="order">The order to create Humm payment transaction</param>
         /// <returns>The <see cref="Task"/> containing the result of creating the Humm payment transaction.</returns>
         /// <exception cref="ArgumentNullException">The <paramref name="order"/> is null</exception>
-        public virtual async Task<(bool Success, string RedirectUrl, IList<string> Errors)> CreatePaymentAsync(Order order)
+        public async Task<(bool Success, string RedirectUrl, IList<string> Errors)> CreatePaymentAsync(Order order)
         {
             if (order is null)
                 throw new ArgumentNullException(nameof(order));
@@ -147,7 +163,7 @@ namespace Nop.Plugin.Payments.Humm.Services
 
             var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
             if (customer == null)
-                errors.Add($"The customer with id '{order.CustomerId}' not found.");
+                errors.Add($"The customer with id '{order.CustomerId}' not found");
 
             var customerShippingAddress = !order.PickupInStore && order.ShippingAddressId.HasValue
                 ? await _addressService.GetAddressByIdAsync(order.ShippingAddressId.Value)
@@ -182,13 +198,19 @@ namespace Nop.Plugin.Payments.Humm.Services
             }
 
             if (string.IsNullOrWhiteSpace(phoneNumber))
-                errors.Add($"The phone number is required.");
+                errors.Add($"The phone number is required");
 
             if (errors.Count > 0)
                 return (false, null, errors);
 
+            var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
+            var url = urlHelper.RouteUrl(HummPaymentDefaults.CheckoutCompletedRouteName,
+                new { token = customer.CustomerGuid },
+                _webHelper.GetCurrentRequestProtocol());
+
             var createPaymentRequest = new InitiateProcessRequest
             {
+                ReturnUrl = url,
                 AccountId = _hummPaymentSettings.IsSandbox
                     ? _hummPaymentSettings.SandboxAccountId
                     : _hummPaymentSettings.ProductionAccountId,
@@ -213,13 +235,24 @@ namespace Nop.Plugin.Payments.Humm.Services
             {
                 var createPaymentResponse = await _hummApi.InitiatePaymentProcessAsync(createPaymentRequest);
                 if (createPaymentResponse.Success)
+                {
+                    //save the tracking id for future use
+                    var trackingId = !string.IsNullOrEmpty(createPaymentResponse.PartnerTrackingId)
+                        ? createPaymentResponse.PartnerTrackingId
+                        : createPaymentResponse.FlexiTrackingId;
+                    if (string.IsNullOrEmpty(trackingId))
+                        throw new ApiException(500, "Tracking ID is empty");
+
+                    await _genericAttributeService.SaveAttributeAsync(order, HummPaymentDefaults.TrackingIdAttribute, trackingId);
+
                     return (true, createPaymentResponse.RedirectUrl, errors);
+                }
                 else
                 {
-                    errors.Add(@$"
-                        Error id - '{createPaymentResponse.Error?.Id}'.
-                        Error code - '{createPaymentResponse.Error?.Code}'.
-                        Error message - '{createPaymentResponse.Error.Message}'.");
+                    var error = createPaymentResponse.Error;
+                    errors.Add($"{(!string.IsNullOrEmpty(error?.Id) ? $"Error id - '{error.Id}'" : null)}" +
+                        $"{(!string.IsNullOrEmpty(error?.Code) ? $"Error code - '{error.Code}'" : null)}" +
+                        $"{(!string.IsNullOrEmpty(error?.Message) ? $"Error message - '{error.Message}'" : null)}");
                 }
             }
             catch (ApiException ex)
@@ -231,15 +264,15 @@ namespace Nop.Plugin.Payments.Humm.Services
         }
 
         /// <summary>
-        /// Gets the Humm payment transaction by specified transaction ID
+        /// Gets the Humm payment transaction by specified tracking ID
         /// </summary>
-        /// <param name="transactionId">The Humm payment transaction ID.</param>
+        /// <param name="trackingId">The Humm payment tracking ID.</param>
         /// <returns>The <see cref="Task"/> containing the result of getting the Humm payment transaction.</returns>
-        /// <exception cref="ArgumentNullException">The <paramref name="transactionId"/> is null</exception>
-        public virtual async Task<(bool Success, GetPaymentDetailsResponse Transaction, IList<string> Errors)> GetTransactionById(string transactionId)
+        /// <exception cref="ArgumentNullException">The <paramref name="trackingId"/> is null</exception>
+        public async Task<(bool Success, GetPaymentDetailsResponse Transaction, IList<string> Errors)> GetTransactionById(string trackingId)
         {
-            if (transactionId is null)
-                throw new ArgumentNullException(nameof(transactionId));
+            if (trackingId is null)
+                throw new ArgumentNullException(nameof(trackingId));
 
             var errors = new List<string>();
 
@@ -255,7 +288,7 @@ namespace Nop.Plugin.Payments.Humm.Services
                 AccountId = _hummPaymentSettings.IsSandbox
                     ? _hummPaymentSettings.SandboxAccountId
                     : _hummPaymentSettings.ProductionAccountId,
-                TrackingId = transactionId
+                TrackingId = trackingId
             };
 
             GetPaymentDetailsResponse getPaymentDetailsResponse = null;
@@ -278,7 +311,7 @@ namespace Nop.Plugin.Payments.Humm.Services
         /// <param name="amountToRefund">The amount to refund</param>
         /// <returns>The <see cref="Task"/> containing the result of refunding the Humm payment transaction.</returns>
         /// <exception cref="ArgumentNullException">The <paramref name="order"/> is null</exception>
-        public virtual async Task<(bool Success, IList<string> Errors)> RefundOrderAsync(Order order, decimal amountToRefund)
+        public async Task<(bool Success, IList<string> Errors)> RefundOrderAsync(Order order, decimal amountToRefund)
         {
             var errors = new List<string>();
 
@@ -305,10 +338,11 @@ namespace Nop.Plugin.Payments.Humm.Services
                     return (true, errors);
                 else
                 {
-                    errors.Add(@$"{refundPaymentResponse.Message}
-                        Error id - '{refundPaymentResponse.Error?.Id}'.
-                        Error code - '{refundPaymentResponse.Error?.Code}'.
-                        Error message - '{refundPaymentResponse.Error.Message}'.");
+                    var error = refundPaymentResponse.Error;
+                    errors.Add($"{refundPaymentResponse.Message}" +
+                        $"{(!string.IsNullOrEmpty(error?.Id) ? $"Error id - '{error.Id}'" : null)}" +
+                        $"{(!string.IsNullOrEmpty(error?.Code) ? $"Error code - '{error.Code}'" : null)}" +
+                        $"{(!string.IsNullOrEmpty(error?.Message) ? $"Error message - '{error.Message}'" : null)}");
                 }
             }
             catch (ApiException ex)
@@ -325,16 +359,23 @@ namespace Nop.Plugin.Payments.Humm.Services
         /// <param name="externalId">The external ID to get the order.</param>
         /// <returns>The <see cref="Task"/> containing the <see cref="Order"/>.</returns>
         /// <exception cref="ArgumentNullException">The <paramref name="externalId"/> is null</exception>
-        public virtual async Task<Order> GetOrderByExternalIdAsync(string externalId)
+        public async Task<Order> GetOrderByExternalIdAsync(string externalId)
         {
             if (externalId is null)
                 throw new ArgumentNullException(nameof(externalId));
 
-            var order = Guid.TryParse(externalId, out var orderGuid)
-                ? await _orderService.GetOrderByGuidAsync(orderGuid)
-                : null;
+            var orderId = _genericAttributeRepository.Table
+                .FirstOrDefault(attribute =>
+                    attribute.KeyGroup == nameof(Order) &&
+                    attribute.Key == HummPaymentDefaults.TrackingIdAttribute &&
+                    attribute.Value == externalId)
+                ?.EntityId;
 
-            return order is null || order.Deleted ? null : order;
+            if (!orderId.HasValue)
+                orderId = _orderRepository.Table.FirstOrDefault(order => order.CaptureTransactionId == externalId)?.Id;
+
+            var order = await _orderRepository.GetByIdAsync(orderId, includeDeleted: false);
+            return order;
         }
 
         #endregion
@@ -355,7 +396,7 @@ namespace Nop.Plugin.Payments.Humm.Services
                 errors.Add("Plugins.Payments.Humm.Fields.InstanceUrl.Required");
 
             if (errors.Count > 0)
-                errors.Add($"Configure the plugin settings or run the '{HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Name}' schedule task to get new access token and/or instance URL.");
+                errors.Add($"Configure the plugin settings or run the '{HummPaymentDefaults.RefreshPrerequisitesScheduleTask.Name}' schedule task to get new access token and/or instance URL");
 
             return (errors.Count == 0, errors);
         }

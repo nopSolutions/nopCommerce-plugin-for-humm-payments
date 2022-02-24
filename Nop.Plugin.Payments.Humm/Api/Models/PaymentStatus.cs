@@ -1,17 +1,14 @@
 ﻿using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json.Converters;
 
 namespace Nop.Plugin.Payments.Humm.Api.Models
 {
     /// <summary>
     /// Represents a status of the checkout app in the humm system
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
     public enum PaymentStatus
     {
         [EnumMember(Value = "TRACKING_ID_NOT_FOUND")]
-        TrackingIdNotFound,
+        NotFound,
 
         [EnumMember(Value = "NOT_STARTED")]
         NotStarted,
@@ -20,9 +17,21 @@ namespace Nop.Plugin.Payments.Humm.Api.Models
         InProgress,
 
         [EnumMember(Value = "PAYMENT_DONE")]
-        PaymentDone,
+        Completed,
 
         [EnumMember(Value = "PAYMENT_CANCELLED")]
-        PaymentCancelled,
+        Cancelled,
+
+        [EnumMember(Value = "CUSTOMER_REFUNDED")]
+        Refunded,
+
+        [EnumMember(Value = "REFUND_IN_PROGRESS")]
+        RefundInProgress,
+
+        [EnumMember(Value = "PARTIAL_REFUND_COMPLETED")]
+        PartiallyRefunded,
+
+        [EnumMember(Value = "FULL_REFUND_REQUESTED")]
+        RefundRequested
     }
 }
