@@ -174,10 +174,9 @@ namespace Nop.Plugin.Payments.Humm.Services
             if (customerShippingAddress != null)
                 customerName = customerShippingAddress.FirstName;
 
-            if (string.IsNullOrWhiteSpace(customerName))
+            if (string.IsNullOrWhiteSpace(customerName) && customer != null)
             {
-                var firstName = await _genericAttributeService
-                    .GetAttributeAsync<string>(customer, NopCustomerDefaults.FirstNameAttribute);
+                var firstName = customer.FirstName;
                 if (!string.IsNullOrWhiteSpace(firstName))
                     customerName = firstName;
                 else if (_customerSettings.UsernamesEnabled)
@@ -193,8 +192,7 @@ namespace Nop.Plugin.Payments.Humm.Services
 
             if (string.IsNullOrWhiteSpace(phoneNumber) && _customerSettings.PhoneEnabled)
             {
-                phoneNumber = await _genericAttributeService
-                    .GetAttributeAsync<string>(customer, NopCustomerDefaults.PhoneAttribute);
+                phoneNumber = customer?.Phone;
             }
 
             if (string.IsNullOrWhiteSpace(phoneNumber))
@@ -205,7 +203,7 @@ namespace Nop.Plugin.Payments.Humm.Services
 
             var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
             var url = urlHelper.RouteUrl(HummPaymentDefaults.CheckoutCompletedRouteName,
-                new { token = customer.CustomerGuid },
+                new { token = customer?.CustomerGuid },
                 _webHelper.GetCurrentRequestProtocol());
 
             var createPaymentRequest = new InitiateProcessRequest
@@ -247,13 +245,11 @@ namespace Nop.Plugin.Payments.Humm.Services
 
                     return (true, createPaymentResponse.RedirectUrl, errors);
                 }
-                else
-                {
-                    var error = createPaymentResponse.Error;
-                    errors.Add($"{(!string.IsNullOrEmpty(error?.Id) ? $"Error id - '{error.Id}'" : null)}" +
-                        $"{(!string.IsNullOrEmpty(error?.Code) ? $"Error code - '{error.Code}'" : null)}" +
-                        $"{(!string.IsNullOrEmpty(error?.Message) ? $"Error message - '{error.Message}'" : null)}");
-                }
+
+                var error = createPaymentResponse.Error;
+                errors.Add($"{(!string.IsNullOrEmpty(error?.Id) ? $"Error id - '{error.Id}'" : null)}" +
+                           $"{(!string.IsNullOrEmpty(error?.Code) ? $"Error code - '{error.Code}'" : null)}" +
+                           $"{(!string.IsNullOrEmpty(error?.Message) ? $"Error message - '{error.Message}'" : null)}");
             }
             catch (ApiException ex)
             {
